@@ -484,6 +484,108 @@ export const verifications = pgTable(
   })
 );
 
+/** Canonical T Level / qualification pathway (spec anchor root). */
+export const specPathways = pgTable(
+  "spec_pathways",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    slug: text("slug").notNull().unique(),
+    name: text("name").notNull(),
+    alias: text("alias"),
+    specVersion: text("spec_version").notNull(),
+    structure: jsonb("structure"),
+    meta: jsonb("meta"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    slugIdx: index("spec_pathways_slug_idx").on(t.slug),
+  })
+);
+
+/** Smallest assessable spec units — anchor for Teams evidence and revision pathline. */
+export const specAtoms = pgTable(
+  "spec_atoms",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    pathwayId: uuid("pathway_id")
+      .notNull()
+      .references(() => specPathways.id, { onDelete: "cascade" }),
+    externalId: text("external_id").notNull(),
+    legacyId: text("legacy_id"),
+    componentSlug: text("component_slug").notNull(),
+    moduleSlug: text("module_slug").notNull(),
+    learningOutcomeId: text("learning_outcome_id"),
+    atomKind: text("atom_kind").notNull().default("knowledge"),
+    title: text("title").notNull(),
+    statement: text("statement").notNull(),
+    keywords: jsonb("keywords").$type<string[]>().default([]).notNull(),
+    bloomLevel: text("bloom_level"),
+    assessmentCriteria: jsonb("assessment_criteria"),
+    prerequisites: jsonb("prerequisites").$type<string[]>().default([]).notNull(),
+    evidenceTypes: jsonb("evidence_types").$type<string[]>().default([]).notNull(),
+    sourceRefs: jsonb("source_refs"),
+    metadata: jsonb("metadata"),
+    needsHumanReview: boolean("needs_human_review").default(false).notNull(),
+    embedding: vector("embedding", 768),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    pathwayIdIdx: index("spec_atoms_pathway_id_idx").on(t.pathwayId),
+    externalIdIdx: index("spec_atoms_external_id_idx").on(t.externalId),
+    componentModuleIdx: index("spec_atoms_component_module_idx").on(t.componentSlug, t.moduleSlug),
+    pathwayExternalUnique: index("spec_atoms_pathway_external_unique_idx").on(
+      t.pathwayId,
+      t.externalId
+    ),
+  })
+);
+
+export const specAtomEdges = pgTable(
+  "spec_atom_edges",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    pathwayId: uuid("pathway_id")
+      .notNull()
+      .references(() => specPathways.id, { onDelete: "cascade" }),
+    fromAtomId: uuid("from_atom_id")
+      .notNull()
+      .references(() => specAtoms.id, { onDelete: "cascade" }),
+    toAtomId: uuid("to_atom_id")
+      .notNull()
+      .references(() => specAtoms.id, { onDelete: "cascade" }),
+    edgeType: text("edge_type").notNull().default("prerequisite"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    fromAtomIdx: index("spec_atom_edges_from_atom_idx").on(t.fromAtomId),
+    toAtomIdx: index("spec_atom_edges_to_atom_idx").on(t.toAtomId),
+  })
+);
+
+/** Links Teams / lesson evidence back to spec atoms. */
+export const evidenceAtomLinks = pgTable(
+  "evidence_atom_links",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    atomId: uuid("atom_id")
+      .notNull()
+      .references(() => specAtoms.id, { onDelete: "cascade" }),
+    sourceType: text("source_type").notNull(),
+    sourceId: text("source_id").notNull(),
+    linkType: text("link_type").notNull(),
+    confidence: integer("confidence"),
+    excerpt: text("excerpt"),
+    metadata: jsonb("metadata"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    atomIdIdx: index("evidence_atom_links_atom_id_idx").on(t.atomId),
+    sourceIdx: index("evidence_atom_links_source_idx").on(t.sourceType, t.sourceId),
+  })
+);
+
 export type UserDevice = typeof userDevices.$inferSelect;
 export type NewUserDevice = typeof userDevices.$inferInsert;
 export type Session = typeof sessions.$inferSelect;
@@ -492,5 +594,13 @@ export type Account = typeof accounts.$inferSelect;
 export type NewAccount = typeof accounts.$inferInsert;
 export type Verification = typeof verifications.$inferSelect;
 export type NewVerification = typeof verifications.$inferInsert;
+export type SpecPathway = typeof specPathways.$inferSelect;
+export type NewSpecPathway = typeof specPathways.$inferInsert;
+export type SpecAtom = typeof specAtoms.$inferSelect;
+export type NewSpecAtom = typeof specAtoms.$inferInsert;
+export type SpecAtomEdge = typeof specAtomEdges.$inferSelect;
+export type NewSpecAtomEdge = typeof specAtomEdges.$inferInsert;
+export type EvidenceAtomLink = typeof evidenceAtomLinks.$inferSelect;
+export type NewEvidenceAtomLink = typeof evidenceAtomLinks.$inferInsert;
 
 

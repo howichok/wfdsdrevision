@@ -11,16 +11,10 @@ export const runtime = "edge";
 
 import { type NextRequest, NextResponse } from "next/server";
 import { generateObject } from "ai";
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { geminiSuperComplex } from "@/lib/ai/gemini";
 import { z } from "zod";
 
-// ─── Gemini client (edge-safe HTTP wrapper) ───────────────────────────────────
-
-const google = createGoogleGenerativeAI({
-  apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY!,
-});
-
-const reviewModel = google("gemini-2.5-pro-preview-05-06");
+// ─── Model (super-complex tier: full-workspace diff review) ───────────────────
 
 // ─── Output schema ────────────────────────────────────────────────────────────
 
@@ -192,7 +186,7 @@ If the diff contains no real problems, return an empty comments array. Do NOT ma
   // ── Invoke Gemini ─────────────────────────────────────────────────────────────
   try {
     const { object } = await generateObject({
-      model: reviewModel,
+      model: geminiSuperComplex,
       schema: ReviewResponseSchema,
       system: systemPrompt,
       prompt: userPrompt,

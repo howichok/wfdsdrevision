@@ -1,4 +1,14 @@
+import { generateObject } from "ai"
+import { z } from "zod"
+import {
+  geminiFlash,
+  getGeminiModel,
+  getGeminiModelId,
+  type GeminiTaskTier,
+} from "@/lib/ai/gemini"
+
 export type KaelStudentTier = "EXPLORER" | "BUILDER" | "PRO"
+export type { GeminiTaskTier }
 
 export const DEFAULT_KAEL_PATHWAY = "T Level Digital Software Development"
 export const KAEL_PATHWAY = process.env.KAEL_T_LEVEL_PATHWAY ?? DEFAULT_KAEL_PATHWAY
@@ -105,4 +115,140 @@ Keep layout highly scannable to match a sleek web UI layout:
 - Use Markdown headers (###) to separate code, analysis, and spec-tracking feedback.
 - Use bullet points for structural criticism.
 - Wrap all code blocks inside clean code fences with syntax highlighting (e.g., \`\`\`python).`
+}
+
+const KaelComplexityDecisionSchema = z.object({
+  reasoning: z
+    .string()
+    .max(240)
+    .describe("One concise sentence explaining the routing choice"),
+  complexity: z
+    .enum(["simple", "super-complex"])
+    .describe(
+      "super-complex ONLY when the task clearly needs deep multi-step reasoning; otherwise simple"
+    ),
+})
+
+const KAEL_ROUTING_SYSTEM = `You are a task router for Kael, a T Level Digital Software Development mentor.
+
+Your job: decide whether the student's request needs the super-complex model or the simple model.
+
+Choose super-complex ONLY when the latest message clearly requires one or more of:
+- Multi-module or full-system architecture design with trade-off analysis
+- Deep algorithmic work (complexity proofs, advanced optimisation across several approaches)
+- Large-scale code review spanning multiple files or subsystems with distinction-level mark-scheme alignment
+- Synthesising extensive recalled Teams/session context into a comprehensive audit or revision plan
+
+Choose simple for everything else, including:
+- Syntax help, single-function debugging, one error at a time
+- Concept explanations, short examples, guided hints, fill-in-the-blank scaffolding
+- Assignment or brief questions when reasonable context exists
+- Short follow-ups, clarifications, or sprint planning in plain language
+- Starter prompts about complexity or architecture that only need focused mentoring, not a full audit
+
+When uncertain, choose simple.`
+
+/** Long threads stay on 2.5 — no 3.1 escalation regardless of classifier. */
+export const KAEL_LONG_THREAD_MESSAGE_THRESHOLD = 100
+
+function isLongThread(messageCount: number): boolean {
+  return messageCount >= KAEL_LONG_THREAD_MESSAGE_THRESHOLD
+}
+
+function isObviousSimplePrompt(userPrompt: string): boolean {
+  const trimmed = userPrompt.trim()
+  if (trimmed.length === 0) return true
+  if (trimmed.length <= 48 && /^(hi|hello|hey|thanks|thank you|ok|okay|yo)\b[!.?\s]*$/i.test(trimmed)) {
+    return true
+  }
+  return false
+}
+
+function formatRecentThread(
+  messages: Array<{ role: "user" | "assistant"; content: string }>,
+  maxMessages = 6
+): string {
+  return messages
+    .slice(-maxMessages)
+    .map((message) => `${message.role}: ${message.content.slice(0, 600)}`)
+    .join("\n\n")
+}
+
+export interface KaelModelRoutingInput {
+  userPrompt: string
+  studentTier: KaelStudentTier
+  recalledContext: string
+  messages: Array<{ role: "user" | "assistant"; content: string }>
+}
+
+export interface KaelModelRoutingResult {
+  tier: GeminiTaskTier
+  modelId: string
+  reasoning: string
+  routedBy: "heuristic" | "classifier"
+}
+
+export async function resolveKaelModelTier(
+  input: KaelModelRoutingInput
+): Promise<KaelModelRoutingResult> {
+  if (isObviousSimplePrompt(input.userPrompt)) {
+    return {
+      tier: "simple",
+      modelId: getGeminiModelId("simple"),
+      reasoning: "Short greeting or acknowledgment.",
+      routedBy: "heuristic",
+    }
+  }
+
+  if (isLongThread(input.messages.length)) {
+    return {
+      tier: "simple",
+      modelId: getGeminiModelId("simple"),
+      reasoning: `Long thread (${input.messages.length} messages); locked to 2.5 Flash-Lite.`,
+      routedBy: "heuristic",
+    }
+  }
+
+  try {
+    const { object } = await generateObject({
+      model: geminiFlash,
+      schema: KaelComplexityDecisionSchema,
+      system: KAEL_ROUTING_SYSTEM,
+      prompt: `Student tier: ${input.studentTier}
+Recalled context length: ${input.recalledContext.length} characters
+Thread length: ${input.messages.length} messages
+
+Recent thread:
+---
+${formatRecentThread(input.messages)}
+---
+
+Latest student message:
+---
+${input.userPrompt.slice(0, 4000)}
+---`,
+    })
+
+    const tier: GeminiTaskTier =
+      object.complexity === "super-complex" ? "super-complex" : "simple"
+
+    return {
+      tier,
+      modelId: getGeminiModelId(tier),
+      reasoning: object.reasoning,
+      routedBy: "classifier",
+    }
+  } catch (error) {
+    console.warn("[Kael routing] Classifier failed, defaulting to simple:", error)
+    return {
+      tier: "simple",
+      modelId: getGeminiModelId("simple"),
+      reasoning: "Classifier unavailable; defaulting to simple tier.",
+      routedBy: "heuristic",
+    }
+  }
+}
+
+export function getKaelModelForTier(tier: GeminiTaskTier) {
+  return getGeminiModel(tier)
 }

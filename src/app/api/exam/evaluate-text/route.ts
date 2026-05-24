@@ -18,14 +18,8 @@ export const runtime = "edge";
 
 import { type NextRequest } from "next/server";
 import { streamObject } from "ai";
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { geminiFlash } from "@/lib/ai/gemini";
 import { z } from "zod";
-
-// ─── Gemini client ────────────────────────────────────────────────────────────
-
-const google = createGoogleGenerativeAI({
-  apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY!,
-});
 
 // ─── Shared schema (must stay in sync with TextHighlighterEngine.tsx) ─────────
 
@@ -121,7 +115,7 @@ export async function POST(req: NextRequest) {
 
   // Kick off the Gemini stream
   const result = streamObject({
-    model: google("gemini-2.0-flash-001"),
+    model: geminiFlash,
     schema: AnnotationSchema,
     system: SYSTEM,
     prompt,

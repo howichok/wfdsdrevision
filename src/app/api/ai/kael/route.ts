@@ -5,14 +5,15 @@ import { streamText } from "ai"
 import { z } from "zod"
 import {
   buildKaelSystemPrompt,
+  getKaelModelForTier,
   KAEL_LOCKED_SCOPE_MESSAGE,
   KAEL_MISSING_CONTEXT_MESSAGE,
   normaliseKaelTier,
   normaliseRecalledContext,
+  resolveKaelModelTier,
   shouldAskForContext,
   shouldLockScope,
 } from "@/lib/ai/kael"
-import { geminiFlash } from "@/lib/ai/gemini"
 
 const kaelChatSchema = z.object({
   messages: z
@@ -66,13 +67,26 @@ export async function POST(req: NextRequest) {
       pathwayOverride: pathway,
     })
 
+    const routing = await resolveKaelModelTier({
+      userPrompt,
+      studentTier: tier,
+      recalledContext: safeRecalledContext,
+      messages,
+    })
+
     const result = streamText({
-      model: geminiFlash,
+      model: getKaelModelForTier(routing.tier),
       system,
       messages,
     })
 
-    return result.toTextStreamResponse()
+    return result.toTextStreamResponse({
+      headers: {
+        "X-Kael-Model": routing.modelId,
+        "X-Kael-Routing": routing.tier,
+        "X-Kael-Routed-By": routing.routedBy,
+      },
+    })
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Failed to start Kael stream"
     return new Response(JSON.stringify({ error: message }), {

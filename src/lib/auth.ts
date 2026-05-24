@@ -12,10 +12,26 @@ function getTrustedOrigins(): string[] {
     process.env.NEXT_PUBLIC_APP_URL,
     process.env.URL,
     process.env.DEPLOY_PRIME_URL,
+    process.env.SITE_URL,
   ]) {
     if (value) origins.add(value.replace(/\/$/, ""));
   }
+  const extra = process.env.BETTER_AUTH_TRUSTED_ORIGINS?.split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+  for (const origin of extra ?? []) {
+    origins.add(origin.replace(/\/$/, ""));
+  }
   return [...origins];
+}
+
+function getAuthBaseURL(): string {
+  return (
+    process.env.NEXT_PUBLIC_APP_URL ??
+    process.env.URL ??
+    process.env.DEPLOY_PRIME_URL ??
+    "http://localhost:3000"
+  ).replace(/\/$/, "");
 }
 
 async function maybeBootstrapSpecialAdmin(userId: string, email: string | null | undefined) {
@@ -37,7 +53,7 @@ export const auth = betterAuth({
   secret:
     process.env.BETTER_AUTH_SECRET ??
     (process.env.NODE_ENV === "development" ? "dev-better-auth-secret-local-only" : undefined),
-  baseURL: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
+  baseURL: getAuthBaseURL(),
   trustedOrigins: getTrustedOrigins(),
   database: drizzleAdapter(db, {
     provider: "pg",

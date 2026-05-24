@@ -3,7 +3,7 @@ export const runtime = "nodejs";
 
 import { type NextRequest, NextResponse } from "next/server";
 import { streamText } from "ai";
-import { geminiFlash } from "@/lib/ai/gemini";
+import { geminiFlash, getGeminiModelResourceId } from "@/lib/ai/gemini";
 import { db } from "@/lib/db";
 import { lessons, lessonRecallNodes, sourceDocuments, userErrorMemory } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -34,7 +34,7 @@ async function getOrCreateGeminiCache(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "models/gemini-2.0-flash-001",
+      model: getGeminiModelResourceId("simple"),
       displayName: `copilot_cache_${lessonId}_${mode}`.replace(/[^a-zA-Z0-9_]/g, "_").slice(0, 100),
       contents: [
         {

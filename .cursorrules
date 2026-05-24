@@ -18,7 +18,7 @@
 - Dexie.js (IndexedDB) — local-first offline data via src/lib/db/dexie.ts
 
 ### AI
-- @ai-sdk/google — Gemini Flash (fast), Pro (complex), text-embedding-004
+- @ai-sdk/google — Gemini 2.5 Flash-Lite (simple/default), 3.1 Flash-Lite (super-complex only), text-embedding-004
 - Vercel AI SDK — streamObject() for streaming, generateObject() for one-shot
 - Zod — all AI output schemas defined with z.object()
 - src/lib/ai/instructor.ts — retry wrapper around generateObject()

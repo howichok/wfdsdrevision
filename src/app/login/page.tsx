@@ -23,6 +23,18 @@ const showSkipLogin =
   process.env.NEXT_PUBLIC_ENABLE_LOGIN_SKIP === "true" ||
   process.env.NEXT_PUBLIC_OFFLINE_MODE === "true";
 
+function authErrorMessage(
+  error: { message?: string; status?: number; code?: string } | null | undefined,
+  fallback: string
+): string {
+  if (!error) return fallback;
+  const detail = error.message?.trim();
+  if (detail) return detail;
+  if (error.code) return `${fallback} (${error.code})`;
+  if (error.status) return `${fallback} (HTTP ${error.status})`;
+  return fallback;
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const { data: session, isPending: sessionLoading } = useAppSession();
@@ -47,7 +59,7 @@ export default function LoginPage() {
     try {
       if (activeTab === "signin") {
         const { error } = await signIn.email({ email, password });
-        if (error) throw new Error(error.message || "Failed to sign in");
+        if (error) throw new Error(authErrorMessage(error, "Failed to sign in"));
         toast.success("Welcome back!");
         router.push("/");
       } else {
@@ -57,7 +69,7 @@ export default function LoginPage() {
           return;
         }
         const { error } = await signUp.email({ email, password, name });
-        if (error) throw new Error(error.message || "Failed to create account");
+        if (error) throw new Error(authErrorMessage(error, "Failed to create account"));
         toast.success("Account created!");
         router.push("/");
       }

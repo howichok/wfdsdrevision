@@ -30,6 +30,11 @@ CREATE INDEX IF NOT EXISTS user_error_memory_embedding_hnsw_idx
   ON user_error_memory USING hnsw (embedding vector_cosine_ops)
   WITH (m = 16, ef_construction = 64)
   WHERE embedding IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS spec_atoms_embedding_hnsw_idx
+  ON spec_atoms USING hnsw (embedding vector_cosine_ops)
+  WITH (m = 16, ef_construction = 64)
+  WHERE embedding IS NOT NULL;
 `.trim();
 
 const SA_SECTION = `
@@ -83,6 +88,10 @@ function main() {
 -- WHERE: Supabase Dashboard → SQL → New query → paste ALL → Run
 --
 -- USE ON: Empty / fresh Supabase project ONLY.
+-- If tables already exist (error: relation "documents" already exists), STOP.
+--   → Use scripts/supabase-spec-atoms-only.sql instead (spec tables only)
+--   → Verify with scripts/supabase-verify-spec.sql
+--
 -- If you already ran npm run db:migrate, skip table creation — run HNSW + SA only.
 --
 -- ORDER:

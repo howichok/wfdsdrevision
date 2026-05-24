@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { extractStructured } from "./instructor";
+import type { GeminiModelAlias } from "./gemini";
 
 // Zod schema for structured grading feedback from Gemini
 export const GradeFeedbackSchema = z.object({
@@ -51,13 +52,13 @@ export async function gradeAttempt({
   gradingCriteria,
   sampleAnswer,
   userAnswer,
-  model = "flash",
+  model = "simple",
 }: {
   questionText: string;
   gradingCriteria: any;
   sampleAnswer: string | null;
   userAnswer: string;
-  model?: "flash" | "pro";
+  model?: GeminiModelAlias;
 }): Promise<GradeFeedback> {
   const rubricString = Array.isArray(gradingCriteria)
     ? gradingCriteria.map((c: any) => `- ${c.criterion} (Points: ${c.maxPoints || c.points || 1})`).join("\n")
@@ -104,11 +105,11 @@ export async function gradeAttempt({
 export async function generateQuestionsFromMaterial({
   materialText,
   sourceContext,
-  model = "flash",
+  model = "simple",
 }: {
   materialText: string;
   sourceContext?: string;
-  model?: "flash" | "pro";
+  model?: GeminiModelAlias;
 }): Promise<GeneratedQuestions> {
   const prompt = `
     Analyze the following educational material and generate a set of structured revision questions.

@@ -10,6 +10,7 @@
     "lint": "eslint",
     "db:generate": "drizzle-kit generate",
     "db:supabase-sql": "node scripts/build-supabase-sql.js",
+    "db:spec-sql": "echo 'Run scripts/supabase-spec-atoms-only.sql in Supabase SQL Editor'",
     "db:migrate": "dotenv -e .env.local -- drizzle-kit migrate",
     "db:studio": "dotenv -e .env.local -- drizzle-kit studio",
     "db:push": "dotenv -e .env.local -- drizzle-kit push",
@@ -18,7 +19,11 @@
     "setup:db": "dotenv -e .env.local -- drizzle-kit migrate && dotenv -e .env.local -- node scripts/bootstrap-db.js",
     "setup": "node scripts/setup-all.js",
     "db:bootstrap": "dotenv -e .env.local -- node scripts/bootstrap-db.js",
-    "seed:sa": "dotenv -e .env.local -- node scripts/seed-sa.js"
+    "seed:sa": "dotenv -e .env.local -- node scripts/seed-sa.js",
+    "spec:gather": "node scripts/gather-spec-atoms.js",
+    "spec:import": "dotenv -e .env.local -- node scripts/import-spec-atoms.js",
+    "spec:import:only": "dotenv -e .env.local -- node scripts/import-spec-atoms.js --skip-migrate",
+    "spec:enrich": "dotenv -e .env.local -- node scripts/run-spec-enrich.js"
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.75",

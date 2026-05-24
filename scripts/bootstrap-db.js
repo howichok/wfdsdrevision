@@ -32,6 +32,13 @@ const INDEXES = [
       WITH (m = 16, ef_construction = 64)
       WHERE embedding IS NOT NULL`,
   },
+  {
+    name: "spec_atoms_embedding_hnsw_idx",
+    sql: `CREATE INDEX IF NOT EXISTS spec_atoms_embedding_hnsw_idx
+      ON spec_atoms USING hnsw (embedding vector_cosine_ops)
+      WITH (m = 16, ef_construction = 64)
+      WHERE embedding IS NOT NULL`,
+  },
 ];
 
 async function main() {

@@ -43,6 +43,13 @@
       "when": 1779554270680,
       "tag": "0005_chief_darkstar",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1779646503346,
+      "tag": "0006_previous_mystique",
+      "breakpoints": true
     }
   ]
 }

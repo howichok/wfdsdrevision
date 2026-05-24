@@ -3,9 +3,27 @@ import { adminClient, multiSessionClient } from "better-auth/client/plugins";
 import { useEffect, useState } from "react";
 import type { UserRole } from "@/lib/db/schema";
 
-export const authClient = createAuthClient({
-  baseURL: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
-  plugins: [multiSessionClient(), adminClient()],
+function resolveAuthBaseURL(): string {
+  if (typeof window !== "undefined") return window.location.origin;
+  return (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(/\/$/, "");
+}
+
+let client: ReturnType<typeof createAuthClient> | null = null;
+
+function getAuthClient() {
+  if (!client) {
+    client = createAuthClient({
+      baseURL: resolveAuthBaseURL(),
+      plugins: [multiSessionClient(), adminClient()],
+    });
+  }
+  return client;
+}
+
+export const authClient = new Proxy({} as ReturnType<typeof createAuthClient>, {
+  get(_target, prop, receiver) {
+    return Reflect.get(getAuthClient(), prop, receiver);
+  },
 });
 
 export const {

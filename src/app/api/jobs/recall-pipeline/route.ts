@@ -122,7 +122,7 @@ async function handler(req: NextRequest) {
       console.log("[Step 1/3] Generating initial structured draft...");
       const initialDraft = await extractStructured({
         schema: LessonStructureSchema,
-        model: "pro",
+        model: "super-complex",
         prompt: `Generate an initial structured lesson plan based on this raw classroom discussion text:\n\n${rawContext}`,
         system: "You are an expert curriculum designer. Break down chat context into clear title, objectives, concepts, and a high-fidelity editor draft.",
       });
@@ -130,7 +130,7 @@ async function handler(req: NextRequest) {
       console.log("[Step 2/3] Performing AI self-critique and correction loop...");
       finalizedDraft = await extractStructured({
         schema: LessonStructureSchema,
-        model: "pro",
+        model: "super-complex",
         prompt: `Original Raw Context:\n${rawContext}\n\nInitial Layout Draft:\n${JSON.stringify(initialDraft, null, 2)}`,
         system: `You are a strict curriculum auditor and reviewer.
 Your job is to identify gaps, omissions, formatting problems, or conceptual errors in the initial layout draft when compared to the original raw discussion logs.
