@@ -4,7 +4,7 @@ import { getOfflineSessionFromRequest } from "@/lib/auth/offline-session-server"
 
 const PUBLIC_PATHS = ["/login", "/welcome"];
 const SA_ONLY_API_PREFIXES = ["/api/teams/cookies", "/api/teams/sync", "/api/teams/channels"];
-const PUBLIC_API_PATHS = ["/api/ai/kael"];
+const PUBLIC_API_PATHS = ["/api/ai/kael", "/api/auth/health"];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;

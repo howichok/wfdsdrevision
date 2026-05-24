@@ -70,7 +70,7 @@ async function maybeBootstrapSpecialAdmin(userId: string, email: string | null |
 
 export const auth = betterAuth({
   secret:
-    process.env.BETTER_AUTH_SECRET ??
+    process.env.BETTER_AUTH_SECRET?.trim() ??
     (process.env.NODE_ENV === "development" ? "dev-better-auth-secret-local-only" : undefined),
   baseURL: getAuthBaseURL(),
   trustedOrigins: getTrustedOrigins(),
