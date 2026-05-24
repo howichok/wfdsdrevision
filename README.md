@@ -155,3 +155,4 @@ After setup, with a real database, skip login creates a persistent guest account
 | `src/lib/auth/` | Auth, permissions, offline session |
 | `src/components/` | UI components |
 # wfdsdrevision
+# wfdsdrevision
