@@ -1,0 +1,13 @@
+[build]
+  command = "npm run build:netlify"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[build.environment]
+  NODE_VERSION = "20"
+  NPM_FLAGS = "--legacy-peer-deps"
+
+# Next.js API routes + auth need the Node runtime bundle
+[functions]
+  node_bundler = "esbuild"

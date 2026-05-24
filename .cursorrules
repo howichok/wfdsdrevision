@@ -1,0 +1,132 @@
+# ═══════════════════════════════════════════════════════════════
+# PROJECT RULES — ENTERPRISE NEXT.JS APP ROUTER STACK
+# ═══════════════════════════════════════════════════════════════
+# This file is the persistent AI skill for this workspace.
+# Every AI assistant (Claude Code, Cursor, Copilot) must treat
+# these rules as strict constraints, not suggestions.
+
+## Tech Stack
+
+### Base & Runtime
+- Next.js 15+ (App Router) + TypeScript — src/ directory layout
+- Node.js for server routes; Edge runtime for lightweight API handlers
+
+### Database & Storage
+- Supabase (managed PostgreSQL)
+- Drizzle ORM — schema in src/lib/db/schema.ts, migrations in src/lib/db/migrations/
+- pgvector extension — 768-dim embeddings, HNSW index (vector_cosine_ops)
+- Dexie.js (IndexedDB) — local-first offline data via src/lib/db/dexie.ts
+
+### AI
+- @ai-sdk/google — Gemini Flash (fast), Pro (complex), text-embedding-004
+- Vercel AI SDK — streamObject() for streaming, generateObject() for one-shot
+- Zod — all AI output schemas defined with z.object()
+- src/lib/ai/instructor.ts — retry wrapper around generateObject()
+
+### Auth
+- better-auth with Drizzle adapter, email+password + Google OAuth
+- Auth route at /api/auth/[...all] — Node.js runtime only
+
+### State Management
+- Zustand + persist middleware → client UI state (src/store/app.store.ts)
+- TanStack Query → server/async data state
+- Dexie.js → offline/local-first data
+
+### Job Queues
+- Upstash QStash — publishJob() in src/server/queues/qstash.ts
+- Webhook handler at /api/queue/webhook — edge runtime, Zod-validated
+
+### Scraping
+- Playwright + custom stealth init script — src/lib/scraping/stealth.ts
+- SERVER ONLY — never import scraping code in client components or edge routes
+
+### Client OS / Sandboxes
+- @webcontainer/api — singleton boot, src/lib/sandboxes/webcontainer.ts
+- Pyodide — singleton loadPyodide(), src/lib/sandboxes/pyodide.ts
+  ⚠ COOP/COEP headers required (set in next.config.js)
+  ⚠ Use redirect OAuth — popups break under these headers
+
+### Document Parsing
+- pdfjs-dist + mammoth — run INSIDE parser.worker.ts via Comlink
+- NEVER import pdfjs-dist or mammoth directly in React components
+
+### In-Browser ML
+- @xenova/transformers — keep in a dedicated ML worker (not parser worker)
+- NEVER bundle model weights — always stream from HuggingFace CDN
+
+### UI
+- Tailwind CSS (utility-first)
+- shadcn/ui components in src/components/ui/ (built on Radix UI)
+- cn() from src/lib/utils/cn.ts for className merging
+- Sonner (toasts), cmdk (command palette), Tiptap (rich text), dnd-kit
+- react-markdown for rendering AI-generated Markdown
+
+## Directory Rules
+
+| Path | Contents |
+|---|---|
+| src/app/ | App Router pages and layouts |
+| src/app/api/ | Route handlers — edge runtime unless using Node.js APIs |
+| src/components/ui/ | shadcn/ui components only — do not add custom logic |
+| src/components/editor/ | Tiptap editor components |
+| src/components/layout/ | Layout primitives (sidebar, topbar, shell) |
+| src/components/shared/ | Reusable domain components |
+| src/lib/ai/ | Gemini wrappers, Zod schemas, structured extraction |
+| src/lib/db/ | Drizzle schema, postgres client, Dexie client |
+| src/lib/db/schema.ts | SINGLE SOURCE OF TRUTH for all table definitions |
+| src/lib/scraping/ | SERVER ONLY: Playwright stealth config |
+| src/lib/workers/ | *.worker.ts files + Comlink hooks |
+| src/lib/sandboxes/ | WebContainers + Pyodide singleton wrappers |
+| src/lib/auth/ | better-auth config |
+| src/lib/utils/ | Pure utility functions (cn, formatters, etc.) |
+| src/server/queues/ | QStash publish/consume logic |
+| src/store/ | Zustand stores |
+| src/hooks/ | Custom React hooks |
+| src/types/ | Global TypeScript declarations |
+
+## Coding Rules
+
+1. **All files**: TypeScript (.ts / .tsx) — no .js in src/
+2. **Exports**: Named exports everywhere except Next.js page/layout/route files
+3. **Imports**: Always use @/ absolute imports, never relative ../..
+4. **ClassNames**: Always use cn() from @/lib/utils/cn
+5. **Edge runtime**: Add `export const runtime = "edge"` to all API routes UNLESS
+   the route imports: better-auth, node-postgres/drizzle, playwright, or Node.js crypto
+6. **Request validation**: Validate ALL request bodies with Zod before processing
+7. **Schema changes**: Edit src/lib/db/schema.ts only, then run `npm run db:generate`
+8. **AI streaming**: streamObject() for SSE responses, generateObject() for one-shot
+9. **State routing**:
+   - Client UI state → Zustand store
+   - Server/async data → TanStack Query
+   - Offline/local data → Dexie
+10. **Heavy parsing**: PDF/DOCX MUST run in parser.worker.ts via useParserWorker hook
+11. **Scraping**: Import stealth.ts only in server-side route handlers, never in components
+
+## Database — pgvector Bootstrap Checklist
+After first `npm run db:migrate`, run these in Supabase SQL editor:
+```sql
+CREATE EXTENSION IF NOT EXISTS vector;
+CREATE INDEX ON embeddings USING hnsw (embedding vector_cosine_ops)
+  WITH (m = 16, ef_construction = 64);
+```
+
+## ════════════════════════════════════════════════════════════
+## ⛔  NO SPYWARE POLICY — STRICTLY ENFORCED — ZERO EXCEPTIONS
+## ════════════════════════════════════════════════════════════
+NEVER install, import, or suggest the following:
+- PostHog
+- Google Analytics / gtag / GA4
+- Mixpanel
+- Segment
+- Amplitude
+- Hotjar
+- FullStory / LogRocket
+- Heap
+- Sentry (performance tracing — error-only self-hosted is OK)
+- Clarity (Microsoft)
+- Any third-party analytics beacon, pixel, or fingerprinting script
+- Any session recording tool
+
+Server-side application logging for debugging purposes is permitted.
+No user data must be sent to third-party analytics services.
+## ════════════════════════════════════════════════════════════
