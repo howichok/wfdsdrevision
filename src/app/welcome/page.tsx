@@ -133,10 +133,15 @@ async function streamKaelReply(
   })
 
   if (!response.ok) {
-    const payload = (await response.json().catch(() => null)) as { error?: string } | null
-    throw new Error(
-      typeof payload?.error === "string" ? payload.error : "Kael could not respond"
-    )
+    const raw = await response.text().catch(() => "");
+    let detail = `HTTP ${response.status}`;
+    try {
+      const payload = JSON.parse(raw) as { error?: string; message?: string };
+      detail = payload.error || payload.message || detail;
+    } catch {
+      if (raw.trim()) detail = raw.slice(0, 180);
+    }
+    throw new Error(detail === "Kael could not respond" ? detail : `Kael could not respond (${detail})`);
   }
 
   const reader = response.body?.getReader()

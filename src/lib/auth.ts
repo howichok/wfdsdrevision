@@ -6,6 +6,18 @@ import { db } from "@/lib/db";
 import * as schema from "@/lib/db/schema";
 import { authRoles } from "@/lib/auth/roles";
 
+function warnAuthEnv() {
+  if (process.env.NODE_ENV === "development") return;
+  if (!process.env.BETTER_AUTH_SECRET?.trim()) {
+    console.error("[auth] BETTER_AUTH_SECRET is missing — signup will return 500.");
+  }
+  if (!process.env.DATABASE_URL?.trim()) {
+    console.error("[auth] DATABASE_URL is missing — signup will return 500.");
+  }
+}
+
+warnAuthEnv();
+
 function getTrustedOrigins(): string[] {
   const origins = new Set<string>(["http://localhost:3000"]);
   for (const value of [
@@ -35,18 +47,25 @@ function getAuthBaseURL(): string {
 }
 
 async function maybeBootstrapSpecialAdmin(userId: string, email: string | null | undefined) {
-  const bootstrapEmail = process.env.BOOTSTRAP_SA_EMAIL?.trim().toLowerCase();
-  if (!bootstrapEmail || !email || email.toLowerCase() !== bootstrapEmail) return;
+  try {
+    const bootstrapEmail = process.env.BOOTSTRAP_SA_EMAIL?.trim().toLowerCase();
+    if (!bootstrapEmail || !email || email.toLowerCase() !== bootstrapEmail) return;
 
-  const existingSa = await db.query.users.findFirst({
-    where: eq(schema.users.role, "SA"),
-  });
-  if (existingSa && existingSa.id !== userId) return;
+    const [existingSa] = await db
+      .select({ id: schema.users.id })
+      .from(schema.users)
+      .where(eq(schema.users.role, "SA"))
+      .limit(1);
 
-  await db
-    .update(schema.users)
-    .set({ role: "SA", updatedAt: new Date() })
-    .where(eq(schema.users.id, userId));
+    if (existingSa && existingSa.id !== userId) return;
+
+    await db
+      .update(schema.users)
+      .set({ role: "SA", updatedAt: new Date() })
+      .where(eq(schema.users.id, userId));
+  } catch (error) {
+    console.error("[auth] SA bootstrap failed (signup still succeeds):", error);
+  }
 }
 
 export const auth = betterAuth({
