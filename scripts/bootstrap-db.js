@@ -47,7 +47,24 @@ async function main() {
     process.exit(1);
   }
 
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  let connectionString = process.env.DATABASE_URL.trim();
+  if (
+    connectionString.includes("pooler.supabase.com") &&
+    connectionString.includes(":6543") &&
+    !connectionString.includes("pgbouncer=")
+  ) {
+    connectionString += connectionString.includes("?")
+      ? "&pgbouncer=true"
+      : "?pgbouncer=true";
+  }
+
+  const pool = new Pool({
+    connectionString,
+    connectionTimeoutMillis: 15_000,
+    ssl: connectionString.includes("supabase.com")
+      ? { rejectUnauthorized: false }
+      : undefined,
+  });
 
   try {
     console.log("→ Enabling pgvector extension…");
